@@ -9,9 +9,8 @@ find_program(ARM_CXX arm-none-eabi-g++)
 find_program(ARM_OBJCOPY arm-none-eabi-objcopy)
 find_program(ARM_SIZE arm-none-eabi-size)
 
-#set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_C_COMPILER ${ARM_CC})
 set(CMAKE_CXX_COMPILER ${ARM_CXX})
 
-#include(${CMAKE_CURRENT_LIST_DIR}/stm32f405rg.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/compile_flags.cmake)
