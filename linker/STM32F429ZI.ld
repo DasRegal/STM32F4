@@ -1,264 +1,186 @@
 /*
- * PackageLicenseDeclared: Apache-2.0
- * Copyright (c) 2015 ARM Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-/* Linker script to configure memory regions. */
-MEMORY
-{
-  VECTORS (rx)          : ORIGIN = 0x08000000, LENGTH = 0x00000400
-  FLASH (rx)            : ORIGIN = 0x08000400, LENGTH = 2048k - 0x400
-  CCM (rwx)             : ORIGIN = 0x10000000, LENGTH = 64K
-  RAM (rwx)             : ORIGIN = 0x200001AC, LENGTH = 192k - 0x1AC
-}
+*****************************************************************************
+**
 
-/* Linker script to place sections and symbol values. Should be used together
- * with other linker script that defines memory regions FLASH and RAM.
- * It references following symbols, which must be defined in code:
- *   Reset_Handler : Entry of reset handler
- *
- * It defines following symbols, which code can use without definition:
- *   __exidx_start
- *   __exidx_end
- *   __etext
- *   __data_start__
- *   __preinit_array_start
- *   __preinit_array_end
- *   __init_array_start
- *   __init_array_end
- *   __fini_array_start
- *   __fini_array_end
- *   __data_end__
- *   __bss_start__
- *   __bss_end__
- *   __end__
- *   end
- *   __HeapLimit
- *   __StackLimit
- *   __StackTop
- *   __stack
- *   _estack
- */
+**  File        : stm32_flash.ld
+**
+**  Abstract    : Linker script for STM32F439NI Device with
+**                2048KByte FLASH, 192KByte RAM
+**
+**                Set heap size, stack size and stack location according
+**                to application requirements.
+**
+**                Set memory bank area and size if external memory is used.
+**
+**  Target      : STMicroelectronics STM32
+**
+**  Environment : Atollic TrueSTUDIO(R)
+**
+**  Distribution: The file is distributed as is, without any warranty
+**                of any kind.
+**
+**  (c)Copyright Atollic AB.
+**  You may use this file as-is or modify it according to the needs of your
+**  project. This file may only be built (assembled or compiled and linked)
+**  using the Atollic TrueSTUDIO(R) product. The use of this file together
+**  with other tools than Atollic TrueSTUDIO(R) is not permitted.
+**
+*****************************************************************************
+*/
+
+/* Entry Point */
 ENTRY(Reset_Handler)
 
+/* Highest address of the user mode stack */
+_estack = 0x20030000;    /* end of RAM */
+/* Generate a link error if heap and stack don't fit into RAM */
+_Min_Heap_Size = 0x200;      /* required amount of heap  */
+_Min_Stack_Size = 0x400; /* required amount of stack */
+
+/* Specify the memory areas */
+MEMORY
+{
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 2048K
+RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 192K
+CCMRAM (rw)      : ORIGIN = 0x10000000, LENGTH = 64K
+}
+
+/* Define output sections */
 SECTIONS
 {
-    .isr_vector :
-    {
-        __vector_table = .;
-        KEEP(*(.isr_vector))
-         . = ALIGN(4);
-    } > VECTORS
+  /* The startup code goes first into FLASH */
+  .isr_vector :
+  {
+    . = ALIGN(4);
+    KEEP(*(.isr_vector)) /* Startup code */
+    . = ALIGN(4);
+  } >FLASH
 
-    /* ensure that uvisor bss is at the beginning of memory */
-    .uvisor.bss (NOLOAD):
-    {
-        . = ALIGN(32);
-        __uvisor_bss_start = .;
+  /* The program code and other data goes into FLASH */
+  .text :
+  {
+    . = ALIGN(4);
+    *(.text)           /* .text sections (code) */
+    *(.text*)          /* .text* sections (code) */
+    *(.glue_7)         /* glue arm to thumb code */
+    *(.glue_7t)        /* glue thumb to arm code */
+    *(.eh_frame)
 
-        /* protected uvisor main bss */
-        . = ALIGN(32);
-        __uvisor_bss_main_start = .;
-        KEEP(*(.keep.uvisor.bss.main))
-        . = ALIGN(32);
-        __uvisor_bss_main_end = .;
+    KEEP (*(.init))
+    KEEP (*(.fini))
 
-        /* protected uvisor secure boxes bss */
-        . = ALIGN(32);
-        __uvisor_bss_boxes_start = .;
-        KEEP(*(.keep.uvisor.bss.boxes))
-        . = ALIGN(32);
-        __uvisor_bss_boxes_end = .;
+    . = ALIGN(4);
+    _etext = .;        /* define a global symbols at end of code */
+  } >FLASH
 
-        . = ALIGN(32);
-        __uvisor_bss_end = .;
-    } > CCM
+  /* Constant data goes into FLASH */
+  .rodata :
+  {
+    . = ALIGN(4);
+    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
+    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+    . = ALIGN(4);
+  } >FLASH
 
-    .text :
-    {
-        /* uVisor code and data */
-        . = ALIGN(4);
-        __uvisor_main_start = .;
-        *(.uvisor.main)
-        __uvisor_main_end = .;
-
-        *(.text*)
-
-        KEEP(*(.init))
-        KEEP(*(.fini))
-
-        /* .ctors */
-        *crtbegin.o(.ctors)
-        *crtbegin?.o(.ctors)
-        *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
-        *(SORT(.ctors.*))
-        *(.ctors)
-
-        /* .dtors */
-        *crtbegin.o(.dtors)
-        *crtbegin?.o(.dtors)
-        *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
-        *(SORT(.dtors.*))
-        *(.dtors)
-
-        *(.rodata*)
-
-        KEEP(*(.eh_frame*))
-    } > FLASH
-
-    .ARM.extab :
-    {
-        *(.ARM.extab* .gnu.linkonce.armextab.*)
-    } > FLASH
-
+  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
+  .ARM : {
     __exidx_start = .;
-
-    .ARM.exidx :
-    {
-        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-    } > FLASH
+    *(.ARM.exidx*)
     __exidx_end = .;
+  } >FLASH
 
-    __etext = .;
-    _sidata = .;
+  .preinit_array     :
+  {
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array*))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  } >FLASH
+  .init_array :
+  {
+    PROVIDE_HIDDEN (__init_array_start = .);
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array*))
+    PROVIDE_HIDDEN (__init_array_end = .);
+  } >FLASH
+  .fini_array :
+  {
+    PROVIDE_HIDDEN (__fini_array_start = .);
+    KEEP (*(SORT(.fini_array.*)))
+    KEEP (*(.fini_array*))
+    PROVIDE_HIDDEN (__fini_array_end = .);
+  } >FLASH
 
-    /* .stack section doesn't contains any symbols. It is only
-     * used for linker to reserve space for the main stack section
-     * WARNING: .stack should come immediately after the last secure memory
-     * section.  This provides stack overflow detection. */
-    .stack (NOLOAD):
-    {
-        __StackLimit = .;
-        *(.stack*);
-        . += 0x8000 - (. - __StackLimit);
-    } > RAM
+  /* used by the startup to initialize data */
+  _sidata = LOADADDR(.data);
 
-    /* Set stack top to end of RAM, and stack limit move down by
-     * size of stack_dummy section */
-    __StackTop = ADDR(.stack) + SIZEOF(.stack);
-    __StackLimit = ADDR(.stack);
-    PROVIDE(__stack = __StackTop);
+  /* Initialized data sections goes into RAM, load LMA copy after code */
+  .data : 
+  {
+    . = ALIGN(4);
+    _sdata = .;        /* create a global symbol at data start */
+    *(.data)           /* .data sections */
+    *(.data*)          /* .data* sections */
 
-    .data :
-    {
-        PROVIDE( __etext = LOADADDR(.data) );
+    . = ALIGN(4);
+    _edata = .;        /* define a global symbol at data end */
+  } >RAM AT> FLASH
 
-        __data_start__ = .;
-        _sdata = .;
-        *(vtable)
-        *(.data*)
+  _siccmram = LOADADDR(.ccmram);
 
-        . = ALIGN(4);
-        /* preinit data */
-        PROVIDE_HIDDEN (__preinit_array_start = .);
-        KEEP(*(.preinit_array))
-        PROVIDE_HIDDEN (__preinit_array_end = .);
+  /* CCM-RAM section 
+  * 
+  * IMPORTANT NOTE! 
+  * If initialized variables will be placed in this section,
+  * the startup code needs to be modified to copy the init-values.  
+  */
+  .ccmram :
+  {
+    . = ALIGN(4);
+    _sccmram = .;       /* create a global symbol at ccmram start */
+    *(.ccmram)
+    *(.ccmram*)
+    
+    . = ALIGN(4);
+    _eccmram = .;       /* create a global symbol at ccmram end */
+  } >CCMRAM AT> FLASH
 
-        . = ALIGN(4);
-        /* init data */
-        PROVIDE_HIDDEN (__init_array_start = .);
-        KEEP(*(SORT(.init_array.*)))
-        KEEP(*(.init_array))
-        PROVIDE_HIDDEN (__init_array_end = .);
+  
+  /* Uninitialized data section */
+  . = ALIGN(4);
+  .bss :
+  {
+    /* This is used by the startup in order to initialize the .bss secion */
+    _sbss = .;         /* define a global symbol at bss start */
+    __bss_start__ = _sbss;
+    *(.bss)
+    *(.bss*)
+    *(COMMON)
 
+    . = ALIGN(4);
+    _ebss = .;         /* define a global symbol at bss end */
+    __bss_end__ = _ebss;
+  } >RAM
 
-        . = ALIGN(4);
-        /* finit data */
-        PROVIDE_HIDDEN (__fini_array_start = .);
-        KEEP(*(SORT(.fini_array.*)))
-        KEEP(*(.fini_array))
-        PROVIDE_HIDDEN (__fini_array_end = .);
+  /* User_heap_stack section, used to check that there is enough RAM left */
+  ._user_heap_stack :
+  {
+    . = ALIGN(4);
+    PROVIDE ( end = . );
+    PROVIDE ( _end = . );
+    . = . + _Min_Heap_Size;
+    . = . + _Min_Stack_Size;
+    . = ALIGN(4);
+  } >RAM
 
-        KEEP(*(.jcr*))
-        . = ALIGN(4);
-        /* All data end */
-        __data_end__ = .;
-        _edata = .;
+  
 
-    } > RAM AT>FLASH
+  /* Remove information from the standard libraries */
+  /DISCARD/ :
+  {
+    libc.a ( * )
+    libm.a ( * )
+    libgcc.a ( * )
+  }
 
-    /* uvisor configuration data */
-    .uvisor.secure :
-    {
-        . = ALIGN(32);
-        __uvisor_secure_start = .;
-
-        /* uvisor secure boxes configuration tables */
-        . = ALIGN(32);
-        __uvisor_cfgtbl_start = .;
-        KEEP(*(.keep.uvisor.cfgtbl))
-        . = ALIGN(32);
-        __uvisor_cfgtbl_end = .;
-
-        /* pointers to uvisor secure boxes configuration tables */
-        /* note: no further alignment here, we need to have the exact list of pointers */
-        __uvisor_cfgtbl_ptr_start = .;
-        KEEP(*(.keep.uvisor.cfgtbl_ptr_first))
-        KEEP(*(.keep.uvisor.cfgtbl_ptr))
-        __uvisor_cfgtbl_ptr_end = .;
-
-        /* the following symbols are kept for backward compatibility and will be soon
-         * deprecated; applications actively using uVisor (__uvisor_mode == UVISOR_ENABLED)
-         * will need to use uVisor 0.8.x or above, or the security assertions will halt the
-         * system */
-        /************************/
-        __uvisor_data_src = .;
-        __uvisor_data_start = .;
-        __uvisor_data_end = .;
-        /************************/
-
-        . = ALIGN(32);
-        __uvisor_secure_end = .;
-    } >FLASH
-
-    .uninitialized (NOLOAD):
-    {
-        . = ALIGN(32);
-        __uninitialized_start = .;
-        *(.uninitialized)
-        KEEP(*(.keep.uninitialized))
-        . = ALIGN(32);
-        __uninitialized_end = .;
-    } > RAM
-
-    .bss (NOLOAD):
-    {
-        . = ALIGN(4);
-        __bss_start__ = .;
-        _sbss = .;
-        *(.bss*)
-        *(COMMON)
-        . = ALIGN(4);
-        __bss_end__ = .;
-        _ebss = .;
-    } > RAM
-
-    .heap (NOLOAD):
-    {
-        __end__ = .;
-        end = __end__;
-        *(.heap*);
-        . += (ORIGIN(RAM) + LENGTH(RAM) - .);
-        __HeapLimit = .;
-    } > RAM
-    PROVIDE(__heap_size = SIZEOF(.heap));
-    PROVIDE(__mbed_sbrk_start = ADDR(.heap));
-    PROVIDE(__mbed_krbs_start = ADDR(.heap) + SIZEOF(.heap));
-
-    /* Provide physical memory boundaries for uVisor. */
-    __uvisor_flash_start = ORIGIN(VECTORS);
-    __uvisor_flash_end = ORIGIN(FLASH) + LENGTH(FLASH);
-    __uvisor_sram_start = ORIGIN(CCM);
-    __uvisor_sram_end = ORIGIN(CCM) + LENGTH(CCM);
+  .ARM.attributes 0 : { *(.ARM.attributes) }
 }
