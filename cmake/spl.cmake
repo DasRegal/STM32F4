@@ -12,7 +12,7 @@ set(SPL_PATH "../../common_lib/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/STM3
 set(CMSIS_PATH "../../common_lib/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/CMSIS")
 
 if (ARM_TOOLCHAIN)
-    set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/arm/startup_stm32f429_439xx.s")
+    set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc_ride7/startup_stm32f429_439xx.s")
 elseif (EWARM_TOOLCHAIN)
     set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/iar/startup_stm32f429_439xx.s")
 endif ()
@@ -24,8 +24,6 @@ file(GLOB_RECURSE SPL_SOURCE_FILES
     "${SPL_PATH}/src/stm32f4xx_rcc.c"
     "${SPL_PATH}/src/stm32f4xx_tim.c"
     "${SPL_PATH}/src/stm32f4xx_usart.c"
-    "${SPL_PATH}/${STARTUP_FILE}"
-#    "${CMSIS_PATH}/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c"
 )
 
 file(GLOB_RECURSE SPL_INC_FILES 
@@ -39,7 +37,7 @@ file(GLOB_RECURSE SPL_INC_FILES
     "${CMSIS_PATH}/Include/core_cm4.h"
 )
 
-#add_library(SPL_LIB ${SPL_SOURCE_FILES} ${SPL_INC_FILES})
+add_library(SPL_LIB ${SPL_SOURCE_FILES} ${SPL_INC_FILES})
 
 include_directories(SYSTEM
         ${SPL_PATH}/inc
@@ -47,5 +45,4 @@ include_directories(SYSTEM
         ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
 )
 
-list(APPEND SOURCE_FILES ${SPL_SOURCE_FILES})
-list(APPEND INC_FILES ${SPL_INC_FILES})
+list(APPEND SOURCE_FILES "${SPL_PATH}/${STARTUP_FILE}")
