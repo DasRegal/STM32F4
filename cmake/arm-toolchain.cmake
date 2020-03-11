@@ -1,4 +1,4 @@
-add_definitions(-DARM_TOOLCHAIN)
+option(ARM_TOOLCHAIN "ARM toolchain" ON)
 
 # Use ARM-GCC for crosscompiling
 set(CMAKE_SYSTEM_NAME Generic)
