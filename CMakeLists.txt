@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 project(stm32f429 C CXX ASM)
 
 # Include an error in case the user forgets to specify ARM as a toolchain

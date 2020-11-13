@@ -11,11 +11,7 @@ add_definitions(-DSTM32F429_439xx)
 set(SPL_PATH "../../common_lib/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/STM32F4xx_StdPeriph_Driver")
 set(CMSIS_PATH "../../common_lib/STM32F4xx_DSP_StdPeriph_Lib_V1.8.0/Libraries/CMSIS")
 
-if (ARM_TOOLCHAIN)
-    set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc_ride7/startup_stm32f429_439xx.s")
-elseif (EWARM_TOOLCHAIN)
-    set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/iar/startup_stm32f429_439xx.s")
-endif ()
+set(STARTUP_FILE "../CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc_ride7/startup_stm32f429_439xx.s")
 
 file(GLOB_RECURSE SPL_SOURCE_FILES
     #"${SPL_PATH}/src/*.c"
