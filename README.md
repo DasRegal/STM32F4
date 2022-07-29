@@ -5,11 +5,18 @@ STM32F429ZI
 
 ```
 .
-├── cmake
-├── linker
-└── src
-    ├── config
+├── cmake/
+├── linker/
+└── src/
+    ├── config/
     └── main.c
+```
+
+## Prepare system
+
+``` sh
+sudo apt-get install libnewlib-arm-none-eabi
+
 ```
 
 ## Build for Windows
